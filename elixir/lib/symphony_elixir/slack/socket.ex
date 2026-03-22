@@ -11,7 +11,7 @@ defmodule SymphonyElixir.Slack.Socket do
   @reconnect_base_ms 1_000
   @reconnect_max_ms 30_000
 
-  defstruct [:app_token, :bot_token, :ws_pid, :notification_channel, reconnect_attempts: 0]
+  defstruct [:app_token, :bot_token, :ws_pid, reconnect_attempts: 0]
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -30,8 +30,7 @@ defmodule SymphonyElixir.Slack.Socket do
   def init(opts) do
     state = %__MODULE__{
       app_token: Keyword.fetch!(opts, :app_token),
-      bot_token: Keyword.fetch!(opts, :bot_token),
-      notification_channel: Keyword.fetch!(opts, :notification_channel)
+      bot_token: Keyword.fetch!(opts, :bot_token)
     }
 
     send(self(), :connect)
@@ -131,7 +130,9 @@ defmodule SymphonyElixir.Slack.Socket do
       thread_ts
     )
 
-    Task.start(fn -> do_implement_from_thread(state.bot_token, context.channel, thread_ts) end)
+    Task.Supervisor.start_child(SymphonyElixir.TaskSupervisor, fn ->
+      do_implement_from_thread(state.bot_token, context.channel, thread_ts)
+    end)
   end
 
   defp do_implement_from_thread(bot_token, channel, thread_ts) do
@@ -160,7 +161,7 @@ defmodule SymphonyElixir.Slack.Socket do
       context.ts
     )
 
-    Task.start(fn ->
+    Task.Supervisor.start_child(SymphonyElixir.TaskSupervisor, fn ->
       title = String.slice(text, 0, 200)
 
       case LinearActions.create_issue(title, text) do

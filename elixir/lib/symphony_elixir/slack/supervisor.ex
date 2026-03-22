@@ -15,7 +15,7 @@ defmodule SymphonyElixir.Slack.Supervisor do
     # Notifier must start before Socket (Socket depends on Notifier for register_origin calls)
     children = [
       {SymphonyElixir.Slack.Notifier, bot_token: bot_token, notification_channel: notification_channel},
-      {SymphonyElixir.Slack.Socket, app_token: app_token, bot_token: bot_token, notification_channel: notification_channel}
+      {SymphonyElixir.Slack.Socket, app_token: app_token, bot_token: bot_token}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

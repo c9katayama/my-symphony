@@ -25,7 +25,6 @@ defmodule SymphonyElixir.ClaudeCode.IntegrationTest do
     case Adapter.run_turn(session, "Write 'hello' to a file called test.txt", %{}, on_message: fn _ -> :ok end) do
       {:ok, result} ->
         assert is_binary(result.result)
-        IO.puts("Claude Code result: #{result.result}")
 
       {:error, reason} ->
         flunk("Claude Code turn failed: #{inspect(reason)}")

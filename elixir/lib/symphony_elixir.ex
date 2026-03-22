@@ -18,6 +18,7 @@ defmodule SymphonyElixir.Application do
   """
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
@@ -57,6 +58,8 @@ defmodule SymphonyElixir.Application do
       []
     end
   rescue
-    _ -> []
+    e ->
+      Logger.warning("Slack disabled: failed to load config: #{Exception.message(e)}")
+      []
   end
 end
