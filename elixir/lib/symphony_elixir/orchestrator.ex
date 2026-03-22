@@ -191,6 +191,11 @@ defmodule SymphonyElixir.Orchestrator do
       running_entry ->
         {updated_running_entry, token_delta} = integrate_codex_update(running_entry, update)
 
+        if update.event == :turn_completed do
+          summary = Map.get(update, :result, "Turn completed")
+          maybe_notify_slack_turn_complete(issue_id, running_entry.identifier, summary)
+        end
+
         state =
           state
           |> apply_codex_token_delta(token_delta)
@@ -698,6 +703,8 @@ defmodule SymphonyElixir.Orchestrator do
         ref = Process.monitor(pid)
 
         Logger.info("Dispatching issue to agent: #{issue_context(issue)} pid=#{inspect(pid)} attempt=#{inspect(attempt)} worker_host=#{worker_host || "local"}")
+
+        maybe_register_linear_origin(issue)
 
         running =
           Map.put(state.running, issue.id, %{
@@ -1652,4 +1659,31 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp integer_like(_value), do: nil
+
+  # Slack notification helpers
+
+  defp maybe_register_linear_origin(%Issue{id: issue_id, identifier: identifier})
+       when is_binary(issue_id) and is_binary(identifier) do
+    if slack_enabled?() do
+      SymphonyElixir.Slack.Notifier.register_origin(issue_id, {:linear, identifier})
+    end
+  end
+
+  defp maybe_register_linear_origin(_issue), do: :ok
+
+  defp maybe_notify_slack_turn_complete(issue_id, identifier, summary)
+       when is_binary(issue_id) and is_binary(identifier) do
+    if slack_enabled?() do
+      SymphonyElixir.Slack.Notifier.notify_turn_complete(issue_id, identifier, summary)
+    end
+  end
+
+  defp maybe_notify_slack_turn_complete(_issue_id, _identifier, _summary), do: :ok
+
+  defp slack_enabled? do
+    case SymphonyElixir.Config.settings() do
+      {:ok, %{slack: %{enabled: true}}} -> true
+      _ -> false
+    end
+  end
 end
