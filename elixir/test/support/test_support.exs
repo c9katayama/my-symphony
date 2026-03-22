@@ -51,7 +51,25 @@ defmodule SymphonyElixir.TestSupport do
     end
   end
 
-  def write_workflow_file!(path, overrides \\ []) do
+  def write_workflow_file!(path, overrides \\ [])
+
+  def write_workflow_file!(path, overrides) when is_map(overrides) do
+    yaml_body = map_to_yaml(overrides, 0)
+    content = "---\n#{yaml_body}---\n#{@workflow_prompt}\n"
+    File.write!(path, content)
+
+    if Process.whereis(SymphonyElixir.WorkflowStore) do
+      try do
+        SymphonyElixir.WorkflowStore.force_reload()
+      catch
+        :exit, _reason -> :ok
+      end
+    end
+
+    :ok
+  end
+
+  def write_workflow_file!(path, overrides) do
     workflow = workflow_content(overrides)
     File.write!(path, workflow)
 
@@ -287,4 +305,34 @@ defmodule SymphonyElixir.TestSupport do
 
     "  #{name}: |\n#{indented}"
   end
+
+  defp map_to_yaml(map, indent) when is_map(map) do
+    prefix = String.duplicate("  ", indent)
+
+    Enum.map_join(map, "", fn {key, value} ->
+      key_str = "#{prefix}#{key}:"
+
+      case value do
+        v when is_map(v) ->
+          "#{key_str}\n#{map_to_yaml(v, indent + 1)}"
+
+        v when is_list(v) ->
+          items = Enum.map_join(v, "", fn item -> "#{prefix}  - #{yaml_scalar(item)}\n" end)
+          "#{key_str}\n#{items}"
+
+        nil ->
+          "#{key_str} null\n"
+
+        v ->
+          "#{key_str} #{yaml_scalar(v)}\n"
+      end
+    end)
+  end
+
+  defp yaml_scalar(value) when is_binary(value), do: "\"#{String.replace(value, "\"", "\\\"")}\""
+  defp yaml_scalar(value) when is_integer(value), do: to_string(value)
+  defp yaml_scalar(true), do: "true"
+  defp yaml_scalar(false), do: "false"
+  defp yaml_scalar(nil), do: "null"
+  defp yaml_scalar(value), do: yaml_scalar(to_string(value))
 end
