@@ -223,6 +223,25 @@ defmodule SymphonyElixir.Config.Schema do
     end
   end
 
+  defmodule Slack do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :enabled, :boolean, default: false
+      field :app_token, :string
+      field :bot_token, :string
+      field :notification_channel, :string
+      field :summarization_model, :string, default: "claude-sonnet-4-6"
+    end
+
+    def changeset(schema, params) do
+      schema
+      |> cast(params, [:enabled, :app_token, :bot_token, :notification_channel, :summarization_model], empty_values: [])
+    end
+  end
+
   defmodule Hooks do
     @moduledoc false
     use Ecto.Schema
@@ -296,6 +315,7 @@ defmodule SymphonyElixir.Config.Schema do
     embeds_one(:hooks, Hooks, on_replace: :update, defaults_to_struct: true)
     embeds_one(:observability, Observability, on_replace: :update, defaults_to_struct: true)
     embeds_one(:server, Server, on_replace: :update, defaults_to_struct: true)
+    embeds_one(:slack, Slack, on_replace: :update, defaults_to_struct: true)
   end
 
   @spec parse(map()) :: {:ok, %__MODULE__{}} | {:error, {:invalid_workflow_config, String.t()}}
@@ -390,6 +410,7 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
     |> cast_embed(:observability, with: &Observability.changeset/2)
     |> cast_embed(:server, with: &Server.changeset/2)
+    |> cast_embed(:slack, with: &Slack.changeset/2)
   end
 
   defp validate_backend_worker_compatibility(settings) do
@@ -419,7 +440,10 @@ defmodule SymphonyElixir.Config.Schema do
         turn_sandbox_policy: normalize_optional_map(settings.codex.turn_sandbox_policy)
     }
 
-    %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    settings = %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    settings = update_in(settings.slack.app_token, &resolve_secret_setting(&1, nil))
+    settings = update_in(settings.slack.bot_token, &resolve_secret_setting(&1, nil))
+    settings
   end
 
   defp normalize_keys(value) when is_map(value) do
