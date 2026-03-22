@@ -31,5 +31,13 @@ defmodule SymphonyElixir.Slack.CommandsTest do
     test "free text defaults to implement" do
       assert {:implement, "この機能を追加してください"} = Commands.parse("この機能を追加してください")
     end
+
+    test "pause without ticket ID returns nil ticket" do
+      assert {:pause, nil} = Commands.parse("pause")
+    end
+
+    test "retry without ticket ID returns nil ticket" do
+      assert {:retry, nil} = Commands.parse("retry")
+    end
   end
 end

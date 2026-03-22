@@ -224,16 +224,17 @@ defmodule SymphonyElixir.Config.Schema do
   end
 
   defmodule Slack do
+    @moduledoc false
     use Ecto.Schema
     import Ecto.Changeset
 
     @primary_key false
     embedded_schema do
-      field :enabled, :boolean, default: false
-      field :app_token, :string
-      field :bot_token, :string
-      field :notification_channel, :string
-      field :summarization_model, :string, default: "claude-sonnet-4-6"
+      field(:enabled, :boolean, default: false)
+      field(:app_token, :string)
+      field(:bot_token, :string)
+      field(:notification_channel, :string)
+      field(:summarization_model, :string, default: "claude-sonnet-4-6")
     end
 
     def changeset(schema, params) do

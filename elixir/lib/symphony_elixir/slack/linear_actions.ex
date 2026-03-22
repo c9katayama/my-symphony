@@ -6,14 +6,14 @@ defmodule SymphonyElixir.Slack.LinearActions do
   require Logger
 
   def create_issue(title, description) do
-    settings = SymphonyElixir.Config.settings!()
-    team_id = settings.tracker.project_slug
-
-    {query, variables} = build_create_issue_mutation(team_id, title, description)
+    {query, variables} = build_create_issue_mutation(linear_team_id(), title, description)
 
     case Client.graphql(query, variables) do
       {:ok, %{"data" => %{"issueCreate" => %{"issue" => issue}}}} ->
         {:ok, issue}
+
+      {:ok, %{"errors" => errors}} ->
+        {:error, {:graphql_errors, errors}}
 
       {:error, reason} ->
         Logger.error("Failed to create Linear issue: #{inspect(reason)}")
@@ -22,10 +22,7 @@ defmodule SymphonyElixir.Slack.LinearActions do
   end
 
   def update_issue_state(issue_identifier, state_name) do
-    settings = SymphonyElixir.Config.settings!()
-    team_id = settings.tracker.project_slug
-
-    with {:ok, state_id} <- find_state_id(team_id, state_name),
+    with {:ok, state_id} <- find_state_id(linear_team_id(), state_name),
          {:ok, issue_id} <- find_issue_id(issue_identifier) do
       {query, variables} = build_update_state_mutation(issue_id, state_id)
 
@@ -87,6 +84,9 @@ defmodule SymphonyElixir.Slack.LinearActions do
           nil -> {:error, {:state_not_found, state_name}}
         end
 
+      {:ok, %{"errors" => errors}} ->
+        {:error, {:graphql_errors, errors}}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -108,8 +108,15 @@ defmodule SymphonyElixir.Slack.LinearActions do
       {:ok, %{"data" => %{"issueSearch" => %{"nodes" => []}}}} ->
         {:error, {:issue_not_found, identifier}}
 
+      {:ok, %{"errors" => errors}} ->
+        {:error, {:graphql_errors, errors}}
+
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp linear_team_id do
+    SymphonyElixir.Config.settings!().tracker.project_slug
   end
 end

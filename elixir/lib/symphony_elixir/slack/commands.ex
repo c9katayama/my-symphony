@@ -5,16 +5,16 @@ defmodule SymphonyElixir.Slack.Commands do
 
   @spec parse(String.t()) ::
           {:work, String.t()}
-          | {:pause, String.t()}
-          | {:retry, String.t()}
+          | {:pause, String.t() | nil}
+          | {:retry, String.t() | nil}
           | :status
           | {:implement, String.t()}
   def parse(text) do
     text = String.trim(text)
 
     cond do
-      text =~ ~r/^pause\s+/i -> {:pause, extract_ticket(text)}
-      text =~ ~r/^retry\s+/i -> {:retry, extract_ticket(text)}
+      text =~ ~r/^pause(\s+|$)/i -> {:pause, extract_ticket(text)}
+      text =~ ~r/^retry(\s+|$)/i -> {:retry, extract_ticket(text)}
       text =~ ~r/^status$/i -> :status
       Regex.match?(@ticket_pattern, text) -> {:work, extract_ticket(text)}
       true -> {:implement, text}
