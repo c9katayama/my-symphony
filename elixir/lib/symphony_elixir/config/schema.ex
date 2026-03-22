@@ -215,9 +215,9 @@ defmodule SymphonyElixir.Config.Schema do
       field(:stall_timeout_ms, :integer, default: 300_000)
     end
 
-    def changeset(schema \\ %__MODULE__{}, params) do
+    def changeset(schema, params) do
       schema
-      |> cast(params, [:command, :model, :additional_flags, :turn_timeout_ms, :stall_timeout_ms])
+      |> cast(params, [:command, :model, :additional_flags, :turn_timeout_ms, :stall_timeout_ms], empty_values: [])
       |> validate_number(:turn_timeout_ms, greater_than: 0)
       |> validate_number(:stall_timeout_ms, greater_than: 0)
     end
@@ -386,7 +386,7 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:worker, with: &Worker.changeset/2)
     |> cast_embed(:agent, with: &Agent.changeset/2)
     |> cast_embed(:codex, with: &Codex.changeset/2)
-    |> cast_embed(:claude_code)
+    |> cast_embed(:claude_code, with: &ClaudeCode.changeset/2)
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
     |> cast_embed(:observability, with: &Observability.changeset/2)
     |> cast_embed(:server, with: &Server.changeset/2)
