@@ -94,30 +94,33 @@ defmodule SymphonyElixir.Slack.Notifier do
   defp post_to_target(state, issue_id, _identifier, text) do
     case get_notification_target(state, issue_id) do
       {:slack_origin, channel, thread_ts} ->
-        case Api.post_message(state.bot_token, channel, text, thread_ts) do
-          {:ok, _} -> :ok
-          {:error, reason} -> Logger.error("Failed to post to Slack thread: #{inspect(reason)}")
-        end
-
+        post_and_log(state.bot_token, channel, text, thread_ts)
         state
 
       {:notification_channel, channel, nil} ->
-        case Api.post_message(state.bot_token, channel, text) do
-          {:ok, %{"ts" => ts}} -> update_linear_thread_ts(state, issue_id, ts)
-          _ -> state
-        end
+        post_to_new_thread(state, issue_id, channel, text)
 
       {:notification_channel, channel, thread_ts} ->
-        case Api.post_message(state.bot_token, channel, text, thread_ts) do
-          {:ok, _} -> :ok
-          {:error, reason} -> Logger.error("Failed to post to Slack thread: #{inspect(reason)}")
-        end
-
+        post_and_log(state.bot_token, channel, text, thread_ts)
         state
 
       nil ->
         Logger.debug("No notification target for issue #{issue_id}")
         state
+    end
+  end
+
+  defp post_and_log(bot_token, channel, text, thread_ts) do
+    case Api.post_message(bot_token, channel, text, thread_ts) do
+      {:ok, _} -> :ok
+      {:error, reason} -> Logger.error("Failed to post to Slack thread: #{inspect(reason)}")
+    end
+  end
+
+  defp post_to_new_thread(state, issue_id, channel, text) do
+    case Api.post_message(state.bot_token, channel, text) do
+      {:ok, %{"ts" => ts}} -> update_linear_thread_ts(state, issue_id, ts)
+      _ -> state
     end
   end
 end

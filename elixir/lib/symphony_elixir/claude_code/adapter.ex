@@ -150,17 +150,15 @@ defmodule SymphonyElixir.ClaudeCode.Adapter do
   end
 
   defp kill_port(port) do
-    try do
-      case Port.info(port, :os_pid) do
-        {:os_pid, os_pid} ->
-          Port.close(port)
-          System.cmd("kill", ["-9", Integer.to_string(os_pid)])
+    case Port.info(port, :os_pid) do
+      {:os_pid, os_pid} ->
+        Port.close(port)
+        System.cmd("kill", ["-9", Integer.to_string(os_pid)])
 
-        nil ->
-          :ok
-      end
-    rescue
-      _ -> :ok
+      nil ->
+        :ok
     end
+  rescue
+    _ -> :ok
   end
 end

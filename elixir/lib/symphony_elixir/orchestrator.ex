@@ -9,6 +9,7 @@ defmodule SymphonyElixir.Orchestrator do
 
   alias SymphonyElixir.{AgentRunner, Config, StatusDashboard, Tracker, Workspace}
   alias SymphonyElixir.Linear.Issue
+  alias SymphonyElixir.Slack.Notifier, as: SlackNotifier
 
   @continuation_retry_delay_ms 1_000
   @failure_retry_base_ms 10_000
@@ -1665,7 +1666,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp maybe_register_linear_origin(%Issue{id: issue_id, identifier: identifier})
        when is_binary(issue_id) and is_binary(identifier) do
     if slack_enabled?() do
-      SymphonyElixir.Slack.Notifier.register_origin(issue_id, {:linear, identifier})
+      SlackNotifier.register_origin(issue_id, {:linear, identifier})
     end
   end
 
@@ -1674,7 +1675,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp maybe_notify_slack_turn_complete(issue_id, identifier, summary)
        when is_binary(issue_id) and is_binary(identifier) do
     if slack_enabled?() do
-      SymphonyElixir.Slack.Notifier.notify_turn_complete(issue_id, identifier, summary)
+      SlackNotifier.notify_turn_complete(issue_id, identifier, summary)
     end
   end
 

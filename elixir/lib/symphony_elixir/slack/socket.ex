@@ -131,40 +131,25 @@ defmodule SymphonyElixir.Slack.Socket do
       thread_ts
     )
 
-    Task.start(fn ->
-      case ThreadContext.fetch_and_summarize(state.bot_token, context.channel, thread_ts) do
-        {:ok, %{title: title, description: description}} ->
-          case LinearActions.create_issue(title, description) do
-            {:ok, %{"identifier" => identifier, "url" => url}} ->
-              Notifier.register_origin(identifier, {:slack, context.channel, thread_ts})
+    Task.start(fn -> do_implement_from_thread(state.bot_token, context.channel, thread_ts) end)
+  end
 
-              Api.post_message(
-                state.bot_token,
-                context.channel,
-                "チケットを作成しました: <#{url}|#{identifier}> — #{title}",
-                thread_ts
-              )
+  defp do_implement_from_thread(bot_token, channel, thread_ts) do
+    case ThreadContext.fetch_and_summarize(bot_token, channel, thread_ts) do
+      {:ok, %{title: title, description: description}} ->
+        case LinearActions.create_issue(title, description) do
+          {:ok, %{"identifier" => identifier, "url" => url}} ->
+            Notifier.register_origin(identifier, {:slack, channel, thread_ts})
+            Api.post_message(bot_token, channel, "チケットを作成しました: <#{url}|#{identifier}> — #{title}", thread_ts)
 
-            {:error, reason} ->
-              Api.post_message(
-                state.bot_token,
-                context.channel,
-                "エラー: チケット作成に失敗しました: #{inspect(reason)}",
-                thread_ts
-              )
-          end
+          {:error, reason} ->
+            Api.post_message(bot_token, channel, "エラー: チケット作成に失敗しました: #{inspect(reason)}", thread_ts)
+        end
 
-        {:error, reason} ->
-          Logger.error("Thread context failed: #{inspect(reason)}")
-
-          Api.post_message(
-            state.bot_token,
-            context.channel,
-            "エラー: スレッドの取得に失敗しました",
-            thread_ts
-          )
-      end
-    end)
+      {:error, reason} ->
+        Logger.error("Thread context failed: #{inspect(reason)}")
+        Api.post_message(bot_token, channel, "エラー: スレッドの取得に失敗しました", thread_ts)
+    end
   end
 
   defp handle_implement_direct(state, text, context) do

@@ -35,13 +35,11 @@ defmodule SymphonyElixir.Slack.ThreadContext do
 
   @spec format_thread_messages(list(map())) :: String.t()
   def format_thread_messages(messages) do
-    messages
-    |> Enum.map(fn msg ->
+    Enum.map_join(messages, "\n", fn msg ->
       user = Map.get(msg, "user", "unknown")
       text = Map.get(msg, "text", "")
       "<#{user}>: #{text}"
     end)
-    |> Enum.join("\n")
   end
 
   @spec build_ticket_description(String.t(), String.t()) :: String.t()

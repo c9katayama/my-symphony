@@ -317,8 +317,7 @@ defmodule SymphonyElixir.TestSupport do
           "#{key_str}\n#{map_to_yaml(v, indent + 1)}"
 
         v when is_list(v) ->
-          items = Enum.map_join(v, "", fn item -> "#{prefix}  - #{yaml_scalar(item)}\n" end)
-          "#{key_str}\n#{items}"
+          "#{key_str}\n#{yaml_list_items(v, prefix)}"
 
         nil ->
           "#{key_str} null\n"
@@ -327,6 +326,10 @@ defmodule SymphonyElixir.TestSupport do
           "#{key_str} #{yaml_scalar(v)}\n"
       end
     end)
+  end
+
+  defp yaml_list_items(items, prefix) do
+    Enum.map_join(items, "", fn item -> "#{prefix}  - #{yaml_scalar(item)}\n" end)
   end
 
   defp yaml_scalar(value) when is_binary(value), do: "\"#{String.replace(value, "\"", "\\\"")}\""

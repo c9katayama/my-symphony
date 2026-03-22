@@ -104,15 +104,35 @@ defmodule SymphonyElixir.AgentRunner do
       end
 
     with {:ok, session} <- adapter.start_session(workspace, adapter_opts) do
+      run_ctx = %{
+        adapter: adapter,
+        session: session,
+        workspace: workspace,
+        codex_update_recipient: codex_update_recipient,
+        opts: opts,
+        issue_state_fetcher: issue_state_fetcher,
+        max_turns: max_turns
+      }
+
       try do
-        do_run_agent_turns(adapter, session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, 1, max_turns)
+        do_run_agent_turns(run_ctx, issue, 1)
       after
         adapter.stop_session(session)
       end
     end
   end
 
-  defp do_run_agent_turns(adapter, session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+  defp do_run_agent_turns(run_ctx, issue, turn_number) do
+    %{
+      adapter: adapter,
+      session: session,
+      workspace: workspace,
+      codex_update_recipient: codex_update_recipient,
+      opts: opts,
+      issue_state_fetcher: issue_state_fetcher,
+      max_turns: max_turns
+    } = run_ctx
+
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
     with {:ok, turn_result} <-
@@ -128,17 +148,7 @@ defmodule SymphonyElixir.AgentRunner do
         {:continue, refreshed_issue} when turn_number < max_turns ->
           Logger.info("Continuing agent run for #{issue_context(refreshed_issue)} after normal turn completion turn=#{turn_number}/#{max_turns}")
 
-          do_run_agent_turns(
-            adapter,
-            session,
-            workspace,
-            refreshed_issue,
-            codex_update_recipient,
-            opts,
-            issue_state_fetcher,
-            turn_number + 1,
-            max_turns
-          )
+          do_run_agent_turns(run_ctx, refreshed_issue, turn_number + 1)
 
         {:continue, refreshed_issue} ->
           Logger.info("Reached agent.max_turns for #{issue_context(refreshed_issue)} with issue still active; returning control to orchestrator")

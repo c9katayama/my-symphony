@@ -47,18 +47,16 @@ defmodule SymphonyElixir.Application do
   end
 
   defp slack_children do
-    try do
-      settings = SymphonyElixir.Config.settings!()
+    settings = SymphonyElixir.Config.settings!()
 
-      if settings.slack.enabled do
-        [
-          {SymphonyElixir.Slack.Supervisor, app_token: settings.slack.app_token, bot_token: settings.slack.bot_token, notification_channel: settings.slack.notification_channel}
-        ]
-      else
-        []
-      end
-    rescue
-      _ -> []
+    if settings.slack.enabled do
+      [
+        {SymphonyElixir.Slack.Supervisor, app_token: settings.slack.app_token, bot_token: settings.slack.bot_token, notification_channel: settings.slack.notification_channel}
+      ]
+    else
+      []
     end
+  rescue
+    _ -> []
   end
 end
