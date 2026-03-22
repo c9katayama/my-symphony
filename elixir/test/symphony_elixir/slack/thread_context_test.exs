@@ -18,10 +18,11 @@ defmodule SymphonyElixir.Slack.ThreadContextTest do
 
   describe "build_ticket_description/2" do
     test "builds description with URL and summary" do
-      desc = ThreadContext.build_ticket_description(
-        "https://app.slack.com/archives/C123/p1234",
-        "Build a login page with OAuth support"
-      )
+      desc =
+        ThreadContext.build_ticket_description(
+          "https://app.slack.com/archives/C123/p1234",
+          "Build a login page with OAuth support"
+        )
 
       assert desc =~ "## Slack Thread Context"
       assert desc =~ "https://app.slack.com/archives/C123/p1234"

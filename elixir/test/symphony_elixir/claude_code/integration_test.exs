@@ -22,9 +22,7 @@ defmodule SymphonyElixir.ClaudeCode.IntegrationTest do
 
     on_exit(fn -> Adapter.stop_session(session) end)
 
-    case Adapter.run_turn(session, "Write 'hello' to a file called test.txt", %{},
-           on_message: fn _ -> :ok end
-         ) do
+    case Adapter.run_turn(session, "Write 'hello' to a file called test.txt", %{}, on_message: fn _ -> :ok end) do
       {:ok, result} ->
         assert is_binary(result.result)
         IO.puts("Claude Code result: #{result.result}")

@@ -201,6 +201,7 @@ defmodule SymphonyElixir.CoreTest do
       "tracker" => %{"kind" => "memory"},
       "workspace" => %{"root" => "/tmp/test"}
     })
+
     settings = Config.settings!()
     assert settings.agent.backend == "codex"
   end
@@ -211,6 +212,7 @@ defmodule SymphonyElixir.CoreTest do
       "workspace" => %{"root" => "/tmp/test"},
       "agent" => %{"backend" => "claude_code"}
     })
+
     settings = Config.settings!()
     assert settings.agent.backend == "claude_code"
   end
@@ -221,6 +223,7 @@ defmodule SymphonyElixir.CoreTest do
       "workspace" => %{"root" => "/tmp/test"},
       "agent" => %{"backend" => "invalid"}
     })
+
     assert {:error, _} = Config.settings()
   end
 
@@ -230,6 +233,7 @@ defmodule SymphonyElixir.CoreTest do
       "workspace" => %{"root" => "/tmp/test"},
       "agent" => %{"backend" => "claude_code"}
     })
+
     settings = Config.settings!()
     assert settings.claude_code.command == "claude"
     assert settings.claude_code.turn_timeout_ms == 3_600_000
@@ -249,6 +253,7 @@ defmodule SymphonyElixir.CoreTest do
         "turn_timeout_ms" => 600_000
       }
     })
+
     settings = Config.settings!()
     assert settings.claude_code.command == "/usr/local/bin/claude"
     assert settings.claude_code.model == "opus"
@@ -261,6 +266,7 @@ defmodule SymphonyElixir.CoreTest do
       "tracker" => %{"kind" => "memory"},
       "workspace" => %{"root" => "/tmp/test"}
     })
+
     settings = Config.settings!()
     assert settings.slack.enabled == false
   end
@@ -268,10 +274,12 @@ defmodule SymphonyElixir.CoreTest do
   test "slack config with all fields" do
     System.put_env("TEST_SLACK_APP_TOKEN", "xapp-test")
     System.put_env("TEST_SLACK_BOT_TOKEN", "xoxb-test")
+
     on_exit(fn ->
       System.delete_env("TEST_SLACK_APP_TOKEN")
       System.delete_env("TEST_SLACK_BOT_TOKEN")
     end)
+
     write_workflow_file!(Workflow.workflow_file_path(), %{
       "tracker" => %{"kind" => "memory"},
       "workspace" => %{"root" => "/tmp/test"},
@@ -282,6 +290,7 @@ defmodule SymphonyElixir.CoreTest do
         "notification_channel" => "#symphony-notifications"
       }
     })
+
     settings = Config.settings!()
     assert settings.slack.enabled == true
     assert settings.slack.app_token == "xapp-test"
@@ -296,6 +305,7 @@ defmodule SymphonyElixir.CoreTest do
       "agent" => %{"backend" => "claude_code"},
       "worker" => %{"ssh_hosts" => ["user@host:22"]}
     })
+
     assert {:error, _} = Config.settings()
   end
 

@@ -52,10 +52,7 @@ defmodule SymphonyElixir.Application do
 
       if settings.slack.enabled do
         [
-          {SymphonyElixir.Slack.Supervisor,
-           app_token: settings.slack.app_token,
-           bot_token: settings.slack.bot_token,
-           notification_channel: settings.slack.notification_channel}
+          {SymphonyElixir.Slack.Supervisor, app_token: settings.slack.app_token, bot_token: settings.slack.bot_token, notification_channel: settings.slack.notification_channel}
         ]
       else
         []

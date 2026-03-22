@@ -10,12 +10,14 @@ defmodule SymphonyElixir.Slack.EventHandler do
           | :ignore
   def handle_event(%{"bot_id" => _}), do: :ignore
 
-  def handle_event(%{
-        "type" => "app_mention",
-        "text" => text,
-        "channel" => channel,
-        "ts" => ts
-      } = event) do
+  def handle_event(
+        %{
+          "type" => "app_mention",
+          "text" => text,
+          "channel" => channel,
+          "ts" => ts
+        } = event
+      ) do
     thread_ts = Map.get(event, "thread_ts")
     stripped = strip_mention(text)
     parsed = Commands.parse(stripped)
