@@ -63,6 +63,8 @@ defmodule SymphonyElixir.Slack.ThreadContext do
   end
 
   @spec extract_title(String.t()) :: String.t()
+  def extract_title(""), do: ""
+
   def extract_title(summary) do
     summary
     |> String.split("\n", parts: 2)
@@ -91,8 +93,7 @@ defmodule SymphonyElixir.Slack.ThreadContext do
       "messages" => [
         %{
           "role" => "user",
-          "content" =>
-            "以下のSlackスレッドの内容を、実装チケットの仕様として簡潔に要約してください。タイトル行を最初に書き、その後に詳細を書いてください。\n\n#{thread_text}"
+          "content" => "以下のSlackスレッドの内容を、実装チケットの仕様として簡潔に要約してください。タイトル行を最初に書き、その後に詳細を書いてください。\n\n#{thread_text}"
         }
       ]
     }
@@ -105,11 +106,15 @@ defmodule SymphonyElixir.Slack.ThreadContext do
              {"content-type", "application/json"}
            ]
          ) do
-      {:ok, %{status: 200, body: %{"content" => [%{"text" => text} | _]}}} -> {:ok, text}
+      {:ok, %{status: 200, body: %{"content" => [%{"text" => text} | _]}}} ->
+        {:ok, text}
+
       {:ok, %{status: status, body: body}} ->
         Logger.error("Anthropic API error: status=#{status} body=#{inspect(body)}")
         {:error, {:anthropic_api, status}}
-      {:error, reason} -> {:error, {:anthropic_api, reason}}
+
+      {:error, reason} ->
+        {:error, {:anthropic_api, reason}}
     end
   end
 end

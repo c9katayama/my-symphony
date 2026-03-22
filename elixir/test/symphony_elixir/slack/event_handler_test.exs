@@ -54,5 +54,22 @@ defmodule SymphonyElixir.Slack.EventHandlerTest do
 
       assert :ignore = EventHandler.handle_event(event)
     end
+
+    test "routes direct implement request (no thread)" do
+      event = %{
+        "type" => "app_mention",
+        "text" => "<@U123BOT> これを実装して",
+        "channel" => "C123",
+        "ts" => "1234.5678",
+        "user" => "U456"
+      }
+
+      assert {:implement_direct, _, %{thread_ts: nil}} = EventHandler.handle_event(event)
+    end
+
+    test "ignores unknown event types" do
+      event = %{"type" => "message", "text" => "hello"}
+      assert :ignore = EventHandler.handle_event(event)
+    end
   end
 end

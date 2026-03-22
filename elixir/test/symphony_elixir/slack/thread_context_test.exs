@@ -45,5 +45,9 @@ defmodule SymphonyElixir.Slack.ThreadContextTest do
     test "strips markdown headers" do
       assert "Login page" = ThreadContext.extract_title("## Login page\nDetails...")
     end
+
+    test "returns empty string for empty input" do
+      assert "" = ThreadContext.extract_title("")
+    end
   end
 end

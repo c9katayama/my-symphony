@@ -30,7 +30,9 @@ defmodule SymphonyElixir.Slack.Notifier do
     case state.issue_targets[issue_id] do
       {:notification_channel, channel, _} ->
         put_in(state.issue_targets[issue_id], {:notification_channel, channel, thread_ts})
-      _ -> state
+
+      _ ->
+        state
     end
   end
 
@@ -74,6 +76,11 @@ defmodule SymphonyElixir.Slack.Notifier do
     {:noreply, register_linear_origin(state, issue_id, identifier)}
   end
 
+  def handle_cast({:register_origin, issue_id, unknown_origin}, state) do
+    Logger.warning("Unknown origin type for issue #{issue_id}: #{inspect(unknown_origin)}")
+    {:noreply, state}
+  end
+
   def handle_cast({:state_change, issue_id, identifier, _old, new_state_name}, state) do
     text = "`#{identifier}` ステータス: *#{new_state_name}*"
     {:noreply, post_to_target(state, issue_id, identifier, text)}
@@ -87,7 +94,11 @@ defmodule SymphonyElixir.Slack.Notifier do
   defp post_to_target(state, issue_id, _identifier, text) do
     case get_notification_target(state, issue_id) do
       {:slack_origin, channel, thread_ts} ->
-        Api.post_message(state.bot_token, channel, text, thread_ts)
+        case Api.post_message(state.bot_token, channel, text, thread_ts) do
+          {:ok, _} -> :ok
+          {:error, reason} -> Logger.error("Failed to post to Slack thread: #{inspect(reason)}")
+        end
+
         state
 
       {:notification_channel, channel, nil} ->
@@ -97,7 +108,11 @@ defmodule SymphonyElixir.Slack.Notifier do
         end
 
       {:notification_channel, channel, thread_ts} ->
-        Api.post_message(state.bot_token, channel, text, thread_ts)
+        case Api.post_message(state.bot_token, channel, text, thread_ts) do
+          {:ok, _} -> :ok
+          {:error, reason} -> Logger.error("Failed to post to Slack thread: #{inspect(reason)}")
+        end
+
         state
 
       nil ->
