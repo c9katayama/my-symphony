@@ -196,6 +196,119 @@ defmodule SymphonyElixir.CoreTest do
     assert {:error, :workflow_front_matter_not_a_map} = Workflow.load(workflow_path)
   end
 
+  test "agent.backend defaults to codex" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"}
+    })
+
+    settings = Config.settings!()
+    assert settings.agent.backend == "codex"
+  end
+
+  test "agent.backend accepts claude_code" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "agent" => %{"backend" => "claude_code"}
+    })
+
+    settings = Config.settings!()
+    assert settings.agent.backend == "claude_code"
+  end
+
+  test "agent.backend rejects invalid values" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "agent" => %{"backend" => "invalid"}
+    })
+
+    assert {:error, _} = Config.settings()
+  end
+
+  test "claude_code config with defaults" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "agent" => %{"backend" => "claude_code"}
+    })
+
+    settings = Config.settings!()
+    assert settings.claude_code.command == "claude"
+    assert settings.claude_code.turn_timeout_ms == 3_600_000
+    assert settings.claude_code.stall_timeout_ms == 300_000
+    assert settings.claude_code.additional_flags == []
+  end
+
+  test "claude_code config with custom values" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "agent" => %{"backend" => "claude_code"},
+      "claude_code" => %{
+        "command" => "/usr/local/bin/claude",
+        "model" => "opus",
+        "additional_flags" => ["--verbose"],
+        "turn_timeout_ms" => 600_000
+      }
+    })
+
+    settings = Config.settings!()
+    assert settings.claude_code.command == "/usr/local/bin/claude"
+    assert settings.claude_code.model == "opus"
+    assert settings.claude_code.additional_flags == ["--verbose"]
+    assert settings.claude_code.turn_timeout_ms == 600_000
+  end
+
+  test "slack config with defaults" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"}
+    })
+
+    settings = Config.settings!()
+    assert settings.slack.enabled == false
+  end
+
+  test "slack config with all fields" do
+    System.put_env("TEST_SLACK_APP_TOKEN", "xapp-test")
+    System.put_env("TEST_SLACK_BOT_TOKEN", "xoxb-test")
+
+    on_exit(fn ->
+      System.delete_env("TEST_SLACK_APP_TOKEN")
+      System.delete_env("TEST_SLACK_BOT_TOKEN")
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "slack" => %{
+        "enabled" => true,
+        "app_token" => "$TEST_SLACK_APP_TOKEN",
+        "bot_token" => "$TEST_SLACK_BOT_TOKEN",
+        "notification_channel" => "#symphony-notifications"
+      }
+    })
+
+    settings = Config.settings!()
+    assert settings.slack.enabled == true
+    assert settings.slack.app_token == "xapp-test"
+    assert settings.slack.bot_token == "xoxb-test"
+    assert settings.slack.notification_channel == "#symphony-notifications"
+  end
+
+  test "claude_code backend rejects ssh_hosts" do
+    write_workflow_file!(Workflow.workflow_file_path(), %{
+      "tracker" => %{"kind" => "memory"},
+      "workspace" => %{"root" => "/tmp/test"},
+      "agent" => %{"backend" => "claude_code"},
+      "worker" => %{"ssh_hosts" => ["user@host:22"]}
+    })
+
+    assert {:error, _} = Config.settings()
+  end
+
   test "SymphonyElixir.start_link delegates to the orchestrator" do
     write_workflow_file!(Workflow.workflow_file_path(), tracker_kind: "memory")
     Application.put_env(:symphony_elixir, :memory_tracker_issues, [])

@@ -18,19 +18,21 @@ defmodule SymphonyElixir.Application do
   """
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
     :ok = SymphonyElixir.LogFile.configure()
 
-    children = [
-      {Phoenix.PubSub, name: SymphonyElixir.PubSub},
-      {Task.Supervisor, name: SymphonyElixir.TaskSupervisor},
-      SymphonyElixir.WorkflowStore,
-      SymphonyElixir.Orchestrator,
-      SymphonyElixir.HttpServer,
-      SymphonyElixir.StatusDashboard
-    ]
+    children =
+      [
+        {Phoenix.PubSub, name: SymphonyElixir.PubSub},
+        {Task.Supervisor, name: SymphonyElixir.TaskSupervisor},
+        SymphonyElixir.WorkflowStore,
+        SymphonyElixir.Orchestrator,
+        SymphonyElixir.HttpServer,
+        SymphonyElixir.StatusDashboard
+      ] ++ slack_children()
 
     Supervisor.start_link(
       children,
@@ -43,5 +45,21 @@ defmodule SymphonyElixir.Application do
   def stop(_state) do
     SymphonyElixir.StatusDashboard.render_offline_status()
     :ok
+  end
+
+  defp slack_children do
+    settings = SymphonyElixir.Config.settings!()
+
+    if settings.slack.enabled do
+      [
+        {SymphonyElixir.Slack.Supervisor, app_token: settings.slack.app_token, bot_token: settings.slack.bot_token, notification_channel: settings.slack.notification_channel}
+      ]
+    else
+      []
+    end
+  rescue
+    e ->
+      Logger.warning("Slack disabled: failed to load config: #{Exception.message(e)}")
+      []
   end
 end

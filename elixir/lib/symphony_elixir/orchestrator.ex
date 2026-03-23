@@ -9,6 +9,7 @@ defmodule SymphonyElixir.Orchestrator do
 
   alias SymphonyElixir.{AgentRunner, Config, StatusDashboard, Tracker, Workspace}
   alias SymphonyElixir.Linear.Issue
+  alias SymphonyElixir.Slack.Notifier, as: SlackNotifier
 
   @continuation_retry_delay_ms 1_000
   @failure_retry_base_ms 10_000
@@ -38,7 +39,8 @@ defmodule SymphonyElixir.Orchestrator do
       claimed: MapSet.new(),
       retry_attempts: %{},
       codex_totals: nil,
-      codex_rate_limits: nil
+      codex_rate_limits: nil,
+      slack_enabled: false
     ]
   end
 
@@ -190,6 +192,11 @@ defmodule SymphonyElixir.Orchestrator do
 
       running_entry ->
         {updated_running_entry, token_delta} = integrate_codex_update(running_entry, update)
+
+        if update.event == :turn_completed do
+          summary = updated_running_entry.last_codex_message || "Turn completed"
+          maybe_notify_slack_turn_complete(state.slack_enabled, issue_id, running_entry.identifier, summary)
+        end
 
         state =
           state
@@ -698,6 +705,8 @@ defmodule SymphonyElixir.Orchestrator do
         ref = Process.monitor(pid)
 
         Logger.info("Dispatching issue to agent: #{issue_context(issue)} pid=#{inspect(pid)} attempt=#{inspect(attempt)} worker_host=#{worker_host || "local"}")
+
+        maybe_register_linear_origin(state.slack_enabled, issue)
 
         running =
           Map.put(state.running, issue.id, %{
@@ -1296,10 +1305,17 @@ defmodule SymphonyElixir.Orchestrator do
   defp refresh_runtime_config(%State{} = state) do
     config = Config.settings!()
 
+    slack_enabled =
+      case SymphonyElixir.Config.settings() do
+        {:ok, %{slack: %{enabled: true}}} -> true
+        _ -> false
+      end
+
     %{
       state
       | poll_interval_ms: config.polling.interval_ms,
-        max_concurrent_agents: config.agent.max_concurrent_agents
+        max_concurrent_agents: config.agent.max_concurrent_agents,
+        slack_enabled: slack_enabled
     }
   end
 
@@ -1652,4 +1668,24 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp integer_like(_value), do: nil
+
+  # Slack notification helpers
+
+  defp maybe_register_linear_origin(slack_enabled, %Issue{id: issue_id, identifier: identifier})
+       when is_binary(issue_id) and is_binary(identifier) do
+    if slack_enabled do
+      SlackNotifier.register_origin(issue_id, {:linear, identifier})
+    end
+  end
+
+  defp maybe_register_linear_origin(_slack_enabled, _issue), do: :ok
+
+  defp maybe_notify_slack_turn_complete(slack_enabled, issue_id, identifier, summary)
+       when is_binary(issue_id) and is_binary(identifier) do
+    if slack_enabled do
+      SlackNotifier.notify_turn_complete(issue_id, identifier, summary)
+    end
+  end
+
+  defp maybe_notify_slack_turn_complete(_slack_enabled, _issue_id, _identifier, _summary), do: :ok
 end
