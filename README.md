@@ -53,8 +53,8 @@ claude_code:
 ```
 
 Claude Code runs with `--dangerously-skip-permissions` so no human approval is required during
-agent turns. Make sure `ANTHROPIC_API_KEY` is set, or that Claude Code has been authenticated
-beforehand via `claude auth`.
+agent turns. Authentication uses Claude Code's own credentials — run `claude auth` beforehand, or
+set `ANTHROPIC_API_KEY` if you prefer API key authentication.
 
 > [!NOTE]
 > Claude Code backend does not support `worker.ssh_hosts`. Use it for local workers only.
@@ -105,7 +105,8 @@ slack:
 ```
 
 Set the environment variables `SLACK_APP_TOKEN` and `SLACK_BOT_TOKEN`, or write the values
-directly. Optionally set `ANTHROPIC_API_KEY` to enable thread summarization.
+directly. Set `ANTHROPIC_API_KEY` to enable thread summarization (used when creating issues from
+Slack threads via `/implement`).
 
 ### Slack commands
 
